@@ -1,0 +1,19 @@
+{
+  "name": "nft-storage",
+  "version": "1.0.0",
+  "description": "testing this thing",
+  "private": "true",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "webpack"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "nft.storage": "^7.1.1"
+  },
+  "devDependencies": {
+    "webpack": "^5.90.2",
+    "webpack-cli": "^5.1.4"
+  }
+}

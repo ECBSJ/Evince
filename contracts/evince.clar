@@ -1,16 +1,23 @@
 (impl-trait 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.nft-trait.nft-trait)
+;; mainnet nft-trait address
+;; (impl-trait 'SP2PABAF9FTAJYNFZH93XENAJ8FVY99RRM50D2JG9.nft-trait.nft-trait)
+;; testnet nft-trait address
+;; (impl-trait 'ST1NXBK3K5YYMD6FD41MVNP3JS1GABZ8TRVX023PT.nft-trait.nft-trait)
+
 (define-non-fungible-token MISSIVE uint)
 (define-data-var last-id uint u0)
 (define-map missives
   {id: uint}
-  {missive-hash: (string-ascii 64), author: principal}
+  {missive-hash: (string-ascii 64), ipfs-cid: (string-ascii 64), author: principal}
 )
 
 (define-constant ERR_SET_MISSIVE (err u100))
 (define-constant ERR_MINT (err u101))
 (define-constant ERR_INVALID_HASH (err u102))
 (define-constant ERR_UNABLE_TO_APPEND_LISTS (err u103))
-(define-constant ERR_INDEXING (err 104))
+(define-constant ERR_INDEXING (err u104))
+(define-constant ERR_INVALID_INPUTS (err u105))
+(define-constant ERR_INVALID_TX_SENDER (err u106))
 
 ;; owner to missives indexing
 (define-map owner-to-missives principal (list 1000 uint))
@@ -40,27 +47,40 @@
   (map-get? missives {id: id})
 )
 
-(define-private (set-missive (hash-string (string-ascii 64)))
+(define-private (set-missive (hash-string (string-ascii 64)) (ipfs-cid (string-ascii 64)))
   ;; Ensure the hash string is not empty
   (if (is-eq (len hash-string) u0)
     (err ERR_INVALID_HASH)
      ;; #[allow(unchecked_data)]
-    (ok (map-set missives {id: (var-get last-id)} {missive-hash: hash-string , author: tx-sender})))
+    (ok (map-set missives {id: (var-get last-id)} {missive-hash: hash-string , ipfs-cid: ipfs-cid, author: tx-sender})))
 )
 
-(define-public (evince (hash-string (string-ascii 64)))
+(define-private (evince (hash-string (string-ascii 64)) (ipfs-cid (string-ascii 64)))
   (begin 
     (unwrap! (mint tx-sender) ERR_MINT)
     ;; #[allow(unchecked_data)]
-    (unwrap! (set-missive hash-string) ERR_SET_MISSIVE)
+    (unwrap! (set-missive hash-string ipfs-cid) ERR_SET_MISSIVE)
     (unwrap-panic (set-owner-to-missives (var-get last-id)))
+    (print { id: (var-get last-id), missive-hash: hash-string, ipfs-cid: ipfs-cid, author: tx-sender })
     (ok true)
+  )
+)
+
+(define-public (prevince (hash-string (string-ascii 64)) (ipfs-cid (string-ascii 64)))
+  (if
+    (or
+      (is-eq (len hash-string) u0)
+      (is-eq (len ipfs-cid) u0)
+    )
+
+    ERR_INVALID_INPUTS
+    (evince hash-string ipfs-cid)
   )
 )
 
 (define-public (transfer (token-id uint) (sender principal) (recipient principal))
   (begin
-     (asserts! (is-eq tx-sender sender) (err u403))
+     (asserts! (is-eq tx-sender sender) ERR_INVALID_TX_SENDER)
      ;; #[allow(unchecked_data)]
      (nft-transfer? MISSIVE token-id sender recipient)))
 
@@ -77,7 +97,10 @@
   (ok (var-get last-id)))
 
 (define-read-only (get-token-uri (token-id uint))
-  (ok (some "https://token.stacks.co/{id}.json")))
+  (let ((cid-string (get ipfs-cid (unwrap-panic (get-missive token-id)))))
+    (ok (some (concat "https://" (concat cid-string ".ipfs.dweb.link/"))))
+  )
+)
 
 (define-private (mint (new-owner principal))
     (let ((next-id (+ u1 (var-get last-id))))

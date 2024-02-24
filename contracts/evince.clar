@@ -19,27 +19,27 @@
 (define-constant ERR_INVALID_INPUTS (err u105))
 (define-constant ERR_INVALID_TX_SENDER (err u106))
 
-;; owner to missives indexing
-(define-map owner-to-missives principal (list 1000 uint))
+;; author to missives indexing
+(define-map author-to-missives principal (list 1000 uint))
 
-(define-read-only (get-owner-to-missives)
-  (map-get? owner-to-missives tx-sender)
+(define-read-only (get-author-to-missives)
+  (map-get? author-to-missives tx-sender)
 )
 
 (define-private (get-existing-list (new-missive-owned uint))
   (ok (let
-    ((existingList (unwrap-panic (map-get? owner-to-missives tx-sender))))
+    ((existingList (unwrap-panic (map-get? author-to-missives tx-sender))))
     (unwrap! (as-max-len? (append existingList new-missive-owned) u1000) ERR_UNABLE_TO_APPEND_LISTS)
   ))
 )
 
-(define-private (set-owner-to-missives (new-missive-owned uint))
-    (if (is-some (get-owner-to-missives)) 
+(define-private (set-author-to-missives (new-missive-owned uint))
+    (if (is-some (get-author-to-missives)) 
       ;; needs to retrieve existing list of uint and append
       ;; #[allow(unchecked_data)]
-      (ok (map-set owner-to-missives tx-sender (try! (get-existing-list new-missive-owned)))) 
+      (ok (map-set author-to-missives tx-sender (try! (get-existing-list new-missive-owned)))) 
       ;; #[allow(unchecked_data)]
-      (ok (map-insert owner-to-missives tx-sender (list new-missive-owned)))
+      (ok (map-insert author-to-missives tx-sender (list new-missive-owned)))
     )
 )
 
@@ -60,7 +60,7 @@
     (unwrap! (mint tx-sender) ERR_MINT)
     ;; #[allow(unchecked_data)]
     (unwrap! (set-missive hash-string ipfs-cid) ERR_SET_MISSIVE)
-    (unwrap-panic (set-owner-to-missives (var-get last-id)))
+    (unwrap-panic (set-author-to-missives (var-get last-id)))
     (print { id: (var-get last-id), missive-hash: hash-string, ipfs-cid: ipfs-cid, author: tx-sender })
     (ok true)
   )
@@ -102,8 +102,8 @@
   )
 )
 
-(define-private (mint (new-owner principal))
+(define-private (mint (new-author principal))
     (let ((next-id (+ u1 (var-get last-id))))
       (var-set last-id next-id)
-      (nft-mint? MISSIVE next-id new-owner)))
+      (nft-mint? MISSIVE next-id new-author)))
 

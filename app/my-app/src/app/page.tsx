@@ -6,8 +6,8 @@ import { redirect } from "next/navigation"
 import { useEffect, useState } from "react"
 
 import { Connect } from "@stacks/connect-react"
-import ConnectWallet, { userSession } from "../components/ConnectWallet"
-import ContractCallVote from "../components/ContractCallVote"
+import ConnectWallet, { userSession } from "../utils/ConnectWallet"
+import ContractCallVote from "../utils/ContractCallVote"
 
 export default function Home() {
   const [isClient, setIsClient] = useState(false)
